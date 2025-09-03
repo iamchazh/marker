@@ -86,3 +86,12 @@ def test_markdown_renderer_tables(pdf_document):
     renderer = MarkdownRenderer()
     md = renderer(pdf_document).markdown
     assert "54 <i>.45</i> 67<br>89 $x$" in md
+
+
+def test_markdown_renderer_github_footnotes():
+    html = "<p>Philosophy<sup>1</sup></p><p><sup>1</sup> Footnote text</p>"
+    renderer = MarkdownRenderer({"github_footnotes": True})
+    md = renderer.md_cls.convert(html)
+    md = renderer.postprocess_footnotes(md)
+    assert "[^1]" in md
+    assert "[^1]: Footnote text" in md

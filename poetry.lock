@@ -3366,10 +3366,10 @@ files = [
 
 [package.dependencies]
 numpy = [
+    {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\""},
+    {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\""},
+    {version = ">=1.23.5", markers = "python_version >= \"3.11\""},
     {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
-    {version = ">=1.23.5", markers = "python_version == \"3.11\""},
-    {version = ">=1.21.4", markers = "python_version == \"3.10\" and platform_system == \"Darwin\""},
-    {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version == \"3.10\""},
 ]
 
 [[package]]
@@ -3466,9 +3466,9 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
-    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -6505,4 +6505,4 @@ full = ["ebooklib", "mammoth", "openpyxl", "python-pptx", "weasyprint"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "1ac291f5af0c2aafad6e5dbb13b4eba9628070f6f5310630a870dd45b70ccecf"
+content-hash = "3ba90b8c3e17a6e3cb4b9303d290934c6aed789405fc35fb8f56c20048d449ed"

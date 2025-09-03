@@ -1,0 +1,44 @@
+# Configuration for batch converting PDFs in philosophical research.
+# Run with:
+#   marker /path/to/input --config_json configs/philosophy.yaml
+
+# ===== General options =====
+output_format: markdown                   # Markdown output is easy to edit
+use_llm: true                             # Enable LLM-assisted improvements
+llm_service: marker.services.gemini.GoogleGeminiService  # LLM backend
+# page_range: [0, 1]                      # Uncomment to limit pages
+
+# ===== OCR settings =====
+force_ocr: false                          # Force OCR on all pages
+strip_existing_ocr: true                  # Remove existing OCR layer
+disable_ocr_math: false                   # Keep OCR-based math detection
+
+# ===== Media handling =====
+extract_images: true                      # Keep figures and charts
+image_extraction_mode: highres            # High quality images
+TableProcessor_table_rec_batch_size: 4    # Batch size for table recognition
+TableProcessor_drop_repeated_table_text: true  # Clean duplicated OCR text in tables
+
+# ===== Pagination and footnotes =====
+paginate_output: false                    # Merge pages into continuous text
+FootnoteProcessor_push_to_end: true       # Collect all footnotes at document end
+MarkdownRenderer_github_footnotes: true   # Emit GitHub-style footnote links
+
+# ===== Humanities clean-up =====
+processors:
+  - marker.processors.footnote.FootnoteProcessor
+  - marker.processors.humanities_clean.HumanitiesCleanProcessor
+HumanitiesCleanProcessor_run_ignore_processor: true  # Remove repeated headers/footers
+HumanitiesCleanProcessor_ignore_patterns:           # Extra boilerplate to drop
+  - '^copyright'
+  - 'all rights reserved'
+  - 'publisher'
+  - 'series information'
+  - '^index$'
+  - 'works cited'
+  - 'bibliography'
+
+# ===== Additional features =====
+redo_inline_math: false                   # Use LLM to fix inline math when true
+# extract_tables: true                    # Tables handled via TableProcessor
+# extract_charts: true                    # Charts treated as figures/images

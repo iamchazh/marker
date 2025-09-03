@@ -111,8 +111,8 @@ Options:
 - `--disable_image_extraction`: Don't extract images from the PDF.  If you also specify `--use_llm`, then images will be replaced with a description.
 - `--debug`: Enable debug mode for additional logging and diagnostic information.
 - `--processors TEXT`: Override the default processors by providing their full module paths, separated by commas. Example: `--processors "module1.processor1,module2.processor2"`
-- `--config_json PATH`: Path to a JSON configuration file containing additional settings.
-- `config --help`: List all available builders, processors, and converters, and their associated configuration.  These values can be used to build a JSON configuration file for additional tweaking of marker defaults.
+- `--config_json PATH`: Path to a JSON or YAML configuration file containing additional settings.
+- `config --help`: List all available builders, processors, and converters, and their associated configuration.  These values can be used to build a configuration file for additional tweaking of marker defaults.
 - `--converter_cls`: One of `marker.converters.pdf.PdfConverter` (default) or `marker.converters.table.TableConverter`.  The `PdfConverter` will convert the whole PDF, the `TableConverter` will only extract and convert tables.
 - `--llm_service`: Which llm service to use if `--use_llm` is passed.  This defaults to `marker.services.gemini.GoogleGeminiService`.
 - `--help`: see all of the flags that can be passed into marker.  (it supports many more options then are listed above)
@@ -157,7 +157,9 @@ text, _, images = text_from_rendered(rendered)
 
 ### Custom configuration
 
-You can pass configuration using the `ConfigParser`.  To see all available options, do `marker_single --help`.
+You can pass configuration using the `ConfigParser`.  To see all available options, do `marker_single --help`.  For complex
+setups, store options in a JSON or YAML file and pass it with `--config_json`.  See [`configs/philosophy.yaml`](configs/philosophy.yaml)
+for a humanities-focused example that enables LLM support, removes boilerplate pages, and collects footnotes as endnotes.
 
 ```python
 from marker.converters.pdf import PdfConverter
@@ -286,7 +288,8 @@ Markdown output will include:
 - formatted tables
 - embedded LaTeX equations (fenced with `$$`)
 - Code is fenced with triple backticks
-- Superscripts for footnotes
+- Superscripts for footnotes (GitHub-style footnote links when `MarkdownRenderer_github_footnotes` is enabled; combine with
+  `FootnoteProcessor_push_to_end: true` and `paginate_output: false` to gather them at the end of the document)
 
 ## HTML
 

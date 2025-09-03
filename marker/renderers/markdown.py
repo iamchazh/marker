@@ -62,6 +62,7 @@ class Markdownify(MarkdownConverter):
         page_separator,
         inline_math_delimiters,
         block_math_delimiters,
+        github_footnotes=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -69,6 +70,7 @@ class Markdownify(MarkdownConverter):
         self.page_separator = page_separator
         self.inline_math_delimiters = inline_math_delimiters
         self.block_math_delimiters = block_math_delimiters
+        self.github_footnotes = github_footnotes
 
     def convert_div(self, el, text, parent_tags):
         is_page = el.has_attr("class") and el["class"][0] == "page"
@@ -95,6 +97,11 @@ class Markdownify(MarkdownConverter):
             if block_type == BlockTypes.ListGroup:
                 return f"{text}"
         return f"{text}\n\n" if text else ""  # default convert_p behavior
+
+    def convert_sup(self, el, text, parent_tags):
+        if self.github_footnotes and text:
+            return f"[^{text}]"
+        return super().convert_sup(el, text, parent_tags)
 
     def convert_math(self, el, text, parent_tags):
         block = el.has_attr("display") and el["display"] == "block"
@@ -268,6 +275,9 @@ class MarkdownRenderer(HTMLRenderer):
     block_math_delimiters: Annotated[
         Tuple[str], "The delimiters to use for block math."
     ] = ("$$", "$$")
+    github_footnotes: Annotated[
+        bool, "Emit GitHub-style footnote links in Markdown output."
+    ] = False
 
     @property
     def md_cls(self):
@@ -284,12 +294,15 @@ class MarkdownRenderer(HTMLRenderer):
             sup_symbol="<sup>",
             inline_math_delimiters=self.inline_math_delimiters,
             block_math_delimiters=self.block_math_delimiters,
+            github_footnotes=self.github_footnotes,
         )
 
     def __call__(self, document: Document) -> MarkdownOutput:
         document_output = document.render(self.block_config)
         full_html, images = self.extract_html(document, document_output)
         markdown = self.md_cls.convert(full_html)
+        if self.github_footnotes:
+            markdown = self.postprocess_footnotes(markdown)
         markdown = cleanup_text(markdown)
 
         # Ensure we set the correct blanks for pagination markers
@@ -304,3 +317,10 @@ class MarkdownRenderer(HTMLRenderer):
             images=images,
             metadata=self.generate_document_metadata(document, document_output),
         )
+
+    @staticmethod
+    def postprocess_footnotes(markdown: str) -> str:
+        def repl(match):
+            return f"[^{match.group(1)}]: {match.group(2)}"
+
+        return re.sub(r"^\[\^([^\]]+)\]\s+(.*)", repl, markdown, flags=re.MULTILINE)

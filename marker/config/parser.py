@@ -2,6 +2,8 @@ import json
 import os
 from typing import Dict
 
+import yaml
+
 import click
 
 from marker.config.crawler import crawler
@@ -47,7 +49,7 @@ class ConfigParser:
             "--config_json",
             type=str,
             default=None,
-            help="Path to JSON file with additional configuration.",
+            help="Path to JSON or YAML file with additional configuration.",
         )(fn)
         fn = click.option(
             "--disable_multiprocessing",
@@ -60,6 +62,12 @@ class ConfigParser:
             is_flag=True,
             default=False,
             help="Disable image extraction.",
+        )(fn)
+        fn = click.option(
+            "--use_llm",
+            is_flag=True,
+            default=False,
+            help="Use an LLM to improve marker accuracy.",
         )(fn)
         # these are options that need a list transformation, i.e splitting/parsing a string
         fn = click.option(
@@ -101,7 +109,10 @@ class ConfigParser:
                     config["page_range"] = parse_range_str(v)
                 case "config_json":
                     with open(v, "r", encoding="utf-8") as f:
-                        config.update(json.load(f))
+                        if v.endswith((".yaml", ".yml")):
+                            config.update(yaml.safe_load(f))
+                        else:
+                            config.update(json.load(f))
                 case "disable_multiprocessing":
                     config["pdftext_workers"] = 1
                 case "disable_image_extraction":
