@@ -11,3 +11,7 @@ def test_markdown_renderer_pagination(pdf_document):
     assert len(pages) == 1
     assert pages[0].block_type == "Page"
     assert pages[0].children[0].block_type == "SectionHeader"
+    assert pages[0].footnotes is not None
+    assert len(pages[0].footnotes) == len(
+        [child for child in pages[0].children if child.block_type == "Footnote"]
+    )

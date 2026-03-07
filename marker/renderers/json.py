@@ -16,6 +16,7 @@ class JSONBlockOutput(BaseModel):
     polygon: List[List[float]]
     bbox: List[float]
     children: List["JSONBlockOutput"] | None = None
+    footnotes: List["JSONBlockOutput"] | None = None
     section_hierarchy: Dict[int, str] | None = None
     images: dict | None = None
 
@@ -84,7 +85,17 @@ class JSONRenderer(BaseRenderer):
         document_output = document.render(self.block_config)
         json_output = []
         for page_output in document_output.children:
-            json_output.append(self.extract_json(document, page_output))
+            page_json = self.extract_json(document, page_output)
+            if (
+                page_json.block_type == str(BlockTypes.Page)
+                and page_json.children is not None
+            ):
+                page_json.footnotes = [
+                    child
+                    for child in page_json.children
+                    if child.block_type == str(BlockTypes.Footnote)
+                ]
+            json_output.append(page_json)
         return JSONOutput(
             children=json_output,
             metadata=self.generate_document_metadata(document, document_output),

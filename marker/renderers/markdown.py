@@ -4,7 +4,7 @@ from typing import Annotated, Tuple
 
 import regex
 import six
-from bs4 import NavigableString
+from bs4 import BeautifulSoup, NavigableString
 from markdownify import MarkdownConverter, re_whitespace
 from marker.logger import get_logger
 from pydantic import BaseModel
@@ -73,7 +73,14 @@ class Markdownify(MarkdownConverter):
         self.html_tables_in_markdown = html_tables_in_markdown
 
     def convert_div(self, el, text, parent_tags):
-        is_page = el.has_attr("class") and el["class"][0] == "page"
+        classes = el.get("class", [])
+        is_page = "page" in classes
+        if "footnotes-section" in classes:
+            if not text.strip():
+                return ""
+            return "\n\n---\n\n**Footnotes**\n\n" + text.strip() + "\n\n"
+        if "footnote" in classes:
+            return text + "\n\n"
         if self.paginate_output and is_page:
             page_id = el["data-page-id"]
             pagination_item = (
@@ -277,6 +284,18 @@ class MarkdownRenderer(HTMLRenderer):
         bool, "Return tables formatted as HTML, instead of in markdown"
     ] = False
 
+    def __init__(self, config=None):
+        super().__init__(config)
+        # Keep markdown paginated unless explicitly disabled.
+        config_dict = {}
+        if hasattr(config, "model_dump"):
+            config_dict = config.model_dump()
+        elif isinstance(config, dict):
+            config_dict = config
+
+        if "paginate_output" not in config_dict:
+            self.paginate_output = True
+
     @property
     def md_cls(self):
         return Markdownify(
@@ -295,9 +314,26 @@ class MarkdownRenderer(HTMLRenderer):
             html_tables_in_markdown=self.html_tables_in_markdown
         )
 
+    @staticmethod
+    def separate_page_footnotes(full_html: str) -> str:
+        soup = BeautifulSoup(full_html, "html.parser")
+        for page in soup.find_all("div", class_="page"):
+            footnotes = page.find_all("div", class_="footnote")
+            if not footnotes:
+                continue
+
+            section = soup.new_tag("div")
+            section["class"] = "footnotes-section"
+            for footnote in footnotes:
+                footnote.extract()
+                section.append(footnote)
+            page.append(section)
+        return str(soup)
+
     def __call__(self, document: Document) -> MarkdownOutput:
         document_output = document.render(self.block_config)
         full_html, images = self.extract_html(document, document_output)
+        full_html = self.separate_page_footnotes(full_html)
         markdown = self.md_cls.convert(full_html)
         markdown = cleanup_text(markdown)
 

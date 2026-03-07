@@ -40,8 +40,17 @@ class IgnoreTextProcessor(BaseProcessor):
         "The minimum fuzzy match score (0-100) required to classify a text block as similar to a common element.",
         "Higher values enforce stricter matching.",
     ] = 90
+    explicit_footer_strings: Annotated[
+        List[str],
+        "Exact footer strings to remove from output after whitespace normalization.",
+    ] = [
+        "Digitized by Google",
+        "Original from UNIVERSITY OF CALIFORNIA",
+    ]
 
     def __call__(self, document: Document):
+        self.remove_explicit_footer_strings(document)
+
         first_blocks = []
         last_blocks = []
         for page in document.pages:
@@ -63,11 +72,26 @@ class IgnoreTextProcessor(BaseProcessor):
         self.filter_common_elements(document, last_blocks)
 
     @staticmethod
+    def normalize_whitespace(text: str) -> str:
+        return re.sub(r"\s+", " ", text or "").strip()
+
+    @staticmethod
     def clean_text(text):
         text = text.replace("\n", "").strip()
         text = re.sub(r"^\d+\s*", "", text)  # remove numbers at the start of the line
         text = re.sub(r"\s*\d+$", "", text)  # remove numbers at the end of the line
         return text
+
+    def remove_explicit_footer_strings(self, document: Document):
+        phrases = [self.normalize_whitespace(p) for p in self.explicit_footer_strings]
+        searchable_block_types = self.block_types + (
+            BlockTypes.PageFooter,
+            BlockTypes.PageHeader,
+        )
+        for block in document.contained_blocks(searchable_block_types):
+            normalized_text = self.normalize_whitespace(block.raw_text(document))
+            if any(phrase in normalized_text for phrase in phrases):
+                block.ignore_for_output = True
 
     def filter_common_elements(self, document, blocks: List[Block]):
         # We can't filter if we don't have enough pages to find common elements

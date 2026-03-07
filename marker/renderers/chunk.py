@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 
 from marker.renderers.json import JSONRenderer, JSONBlockOutput
+from marker.schema import BlockTypes
 from marker.schema.document import Document
 
 
@@ -19,10 +20,17 @@ class FlatBlockOutput(BaseModel):
     images: dict | None = None
 
 
+class PageChunkOutput(BaseModel):
+    body: List[FlatBlockOutput]
+    footnotes: List[FlatBlockOutput]
+
+
 class ChunkOutput(BaseModel):
     blocks: List[FlatBlockOutput]
+    pages: Dict[int, PageChunkOutput]
     page_info: Dict[int, dict]
     metadata: dict
+
 
 def collect_images(block: JSONBlockOutput) -> dict[str, str]:
     if not getattr(block, "children", None):
@@ -81,9 +89,27 @@ class ChunkRenderer(JSONRenderer):
 
         # This will get the top-level blocks from every page
         chunk_output = []
+        page_chunks: Dict[int, PageChunkOutput] = {}
         for item in json_output:
             chunks = json_to_chunks(item, set([str(block) for block in self.image_blocks]))
             chunk_output.extend(chunks)
+            page_id = int(item.id.split("/")[-1])
+
+            body_chunks = []
+            footnote_chunks = []
+            for child in item.children or []:
+                child_chunk = json_to_chunks(
+                    child, set([str(block) for block in self.image_blocks]), page_id=page_id
+                )
+                if child.block_type == str(BlockTypes.Footnote):
+                    footnote_chunks.append(child_chunk)
+                else:
+                    body_chunks.append(child_chunk)
+
+            page_chunks[page_id] = PageChunkOutput(
+                body=body_chunks,
+                footnotes=footnote_chunks,
+            )
 
         page_info = {
             page.page_id: {"bbox": page.polygon.bbox, "polygon": page.polygon.polygon}
@@ -92,6 +118,7 @@ class ChunkRenderer(JSONRenderer):
 
         return ChunkOutput(
             blocks=chunk_output,
+            pages=page_chunks,
             page_info=page_info,
             metadata=self.generate_document_metadata(document, document_output),
         )

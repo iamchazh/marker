@@ -114,6 +114,13 @@ class HTMLRenderer(BaseRenderer):
                     content = f"<div class='page' data-page-id='{ref_block_id.page_id}'>{content}</div>"
                 element = BeautifulSoup(f"{content}", "html.parser")
                 ref.replace_with(self.insert_block_id(element, ref_block_id))
+            elif ref_block_id.block_type == BlockTypes.Footnote:
+                images.update(sub_images)
+                element = BeautifulSoup(
+                    f"<div class='footnote' data-footnote-id='{ref_block_id}'>{content}</div>",
+                    "html.parser",
+                )
+                ref.replace_with(self.insert_block_id(element, ref_block_id))
             else:
                 images.update(sub_images)
                 element = BeautifulSoup(f"{content}", "html.parser")

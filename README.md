@@ -105,7 +105,7 @@ Options:
 - `--page_range TEXT`: Specify which pages to process. Accepts comma-separated page numbers and ranges. Example: `--page_range "0,5-10,20"` will process pages 0, 5 through 10, and page 20.
 - `--output_format [markdown|json|html|chunks]`: Specify the format for the output results.
 - `--output_dir PATH`: Directory where output files will be saved. Defaults to the value specified in settings.OUTPUT_DIR.
-- `--paginate_output`: Paginates the output, using `\n\n{PAGE_NUMBER}` followed by `-` * 48, then `\n\n`
+- `--paginate_output`: Paginates the output, using `\n\n{PAGE_NUMBER}` followed by `-` * 48, then `\n\n`. Markdown output is paginated by default.
 - `--use_llm`: Uses an LLM to improve accuracy.  You will need to configure the LLM backend - see [below](#llm-services).
 - `--force_ocr`: Force OCR processing on the entire document, even for pages that might contain extractable text.  This will also format inline math properly.
 - `--block_correction_prompt`: if LLM mode is active, an optional prompt that will be used to correct the output of marker.  This is useful for custom formatting or logic that you want to apply to the output.
@@ -289,7 +289,9 @@ Markdown output will include:
 - formatted tables
 - embedded LaTeX equations (fenced with `$$`)
 - Code is fenced with triple backticks
-- Superscripts for footnotes
+- Linked numeric in-body footnote markers
+- Page-scoped footnotes are separated with a `Footnotes` section per page when pagination is enabled
+- In-body numeric footnote markers are linked as `[n](#page-...-footnote-...)`
 
 ## HTML
 
@@ -312,6 +314,7 @@ Pages have the keys:
 - `html` - the HTML for the page.  Note that this will have recursive references to children.  The `content-ref` tags must be replaced with the child content if you want the full html.  You can see an example of this at `marker/output.py:json_to_html`.  That function will take in a single block from the json output, and turn it into HTML.
 - `polygon` - the 4-corner polygon of the page, in (x1,y1), (x2,y2), (x3, y3), (x4, y4) format.  (x1,y1) is the top left, and coordinates go clockwise.
 - `children` - the child blocks.
+- `footnotes` - footnote child blocks on that page (additive convenience field; `children` remains unchanged).
 
 The child blocks have two additional keys:
 
@@ -352,6 +355,9 @@ Note that child blocks of pages can have their own children as well (a tree stru
 ## Chunks
 
 Chunks format is similar to JSON, but flattens everything into a single list instead of a tree.  Only the top level blocks from each page show up. It also has the full HTML of each block inside, so you don't need to crawl the tree to reconstruct it.  This enable flexible and easy chunking for RAG.
+
+In addition to `blocks`, chunk output includes:
+- `pages` - page-level grouped chunks with separate `body` and `footnotes` lists.
 
 ## Metadata
 

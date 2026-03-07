@@ -8,10 +8,14 @@ def test_chunk_renderer(pdf_document):
     renderer = ChunkRenderer()
     chunk_output = renderer(pdf_document)
     blocks = chunk_output.blocks
+    pages = chunk_output.pages
     page_info = chunk_output.page_info
 
     assert len(blocks) == 14
     assert blocks[0].block_type == "SectionHeader"
+    assert 0 in pages
+    assert pages[0].body is not None
+    assert pages[0].footnotes is not None
     assert page_info[0]["bbox"] is not None
     assert page_info[0]["polygon"] is not None
 
